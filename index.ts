@@ -14,13 +14,13 @@ interface PoolObject {
   pool_id: string
   token0: Token
   token1: Token
-} 
+}
 
 interface PriceModel {
   token0: string | undefined,
   token1: string | undefined,
   price: string,
-  
+
 }
 
 let chain = new Chain();
@@ -28,7 +28,8 @@ let init = new Chain();
 
 
 
-let pools_list: Array<PoolObject>= [];
+let pools_list: Array<PoolObject> = [];
+let prices_list: Array<PriceModel> = [];
 //const setPoolsList = (data: Array<JSON>) => {
 //  pools_list = data;
 ////  console.log("Pool list variable: ", pools_list[0])
@@ -38,18 +39,18 @@ let pools_list: Array<PoolObject>= [];
 init.add(
   () => {
     getAllUniswapPools()
-    
-    
+
+
   }
 )
-.once()
+  .once()
 
 
 //Get all Uniswap Pools
-async function  getAllUniswapPools(){
+async function getAllUniswapPools() {
   const query = `
     {
-      pools(first: 10, orderBy: volumeUSD, orderDirection: desc) {
+      pools(first: 2, orderBy: volumeUSD, orderDirection: desc) {
         id
         token0{
           id
@@ -78,35 +79,35 @@ async function  getAllUniswapPools(){
         query
       })
     })
-    .then(r => r.json())
-    .then(data => {
-      //console.log('data returned: ', data.data.pools[0]);
-      //setPoolsList(data.data.pools);
-  
-      if (data.data.pools) {
-        const pools = data.data.pools;
-        //console.log("DATA RET: ", pools)
-        pools.forEach((pool: any) => {
-        //console.log("DATA RET: ", pool.token0.id)
-  
-          const model: PoolObject = {
-            pool_id: pool.id,
-            token0: new Token(3, pool.token0.id, parseInt(pool.token0.decimals?.toString()), pool.token0.symbol?.toString(), pool.token0.name?.toString()),
-            token1: new Token(3, pool.token1.id, parseInt(pool.token1.decimals?.toString()), pool.token1.symbol?.toString(), pool.token1.name?.toString())
-          }
-          pools_list.push(model)
-        });
-      }
-      
-      console.log("ARRAY FINAL: ", pools_list)
-    });
+      .then(r => r.json())
+      .then(data => {
+        //console.log('data returned: ', data.data.pools[0]);
+        //setPoolsList(data.data.pools);
+
+        if (data.data.pools) {
+          const pools = data.data.pools;
+          //console.log("DATA RET: ", pools)
+          pools.forEach((pool: any) => {
+            //console.log("DATA RET: ", pool.token0.id)
+
+            const model: PoolObject = {
+              pool_id: pool.id,
+              token0: new Token(3, pool.token0.id, parseInt(pool.token0.decimals?.toString()), pool.token0.symbol?.toString(), pool.token0.name?.toString()),
+              token1: new Token(3, pool.token1.id, parseInt(pool.token1.decimals?.toString()), pool.token1.symbol?.toString(), pool.token1.name?.toString())
+            }
+            pools_list.push(model)
+          });
+        }
+
+        console.log("ARRAY FINAL: ", pools_list)
+      });
   }
   catch (e: any) {
     console.log(e)
   }
- 
 
-  
+
+
 }
 
 
@@ -200,68 +201,94 @@ async function readPoolInstance(
   return pool;
 }
 
-function main(){
-  console.log("STARTING")
-  if(pools_list) {
+const setPoolsList = (list: Array<PriceModel>) => {
+  prices_list = list;
+}
+
+const fetchTokenPools = (pools_list: PoolObject[]) => {
+  const l: Array<PriceModel> =[];
+
+  pools_list.forEach(pool => {
+    console.log("FOR ECH")
+    poolContract = new ethers.Contract(pool.pool_id, IUniswapV3PoolABI, provider);
+    //console.log("current pool instance: ", pool)
+    //console.log("TOKEN0-: ", pool.token0.decimals, pool.token0)
+    //console.log("TOKEN1-: ",  pool.token1.decimals,  pool.token1)
+
+    try {
+      const poolInstance = readPoolInstance(
+        pool
+      );
+      poolInstance.then((poolData) => {
+
+        ////console.log("***POOL***")
+        ////console.log("POOL ID: ", pool.pool_id)
+        //console.log(p)
+        ////console.log("->Pool Data")
+        //console.log("Uniswap Pools list: ", pools_list)
+        const token0Price = poolData.token0Price;
+        const token1Price = poolData.token1Price;
+        //console.log("Base Currency: ", token0Price)
+
+        const sqrtx96 = poolData.sqrtRatioX96;
+        const priceToken0 = token0Price.toSignificant(6)
+        //console.log("Price of token0 wrt token1: ", priceToken0)
+
+        const priceToken1 = token1Price.toSignificant(6)
+        console.log(`Price of ${poolData.token1.symbol} wrt ${poolData.token0.symbol}: ${priceToken1}`)
+
+        let model: PriceModel = {
+          token0: poolData.token1.symbol,
+          token1: poolData.token0.symbol,
+          price: priceToken1
+        }
+
+        l.push(model)
+      })
+        .then((data) => {
+          console.log("CREATD LIST: ", l)
+          setPoolsList(l);
+        })
+    }
+    catch (e: any) {
+      console.log(e)
+    }
+
+
+  });
+
+
+}
+
+function main() {
+  console.log("Fetching 2 uniswap tokens")
+  if (pools_list) {
+    console.log("Pool list populated...")
     //console.log("Uniswap pools: ", pools_list[0])
     //console.log("Fetched Uniswap Pools :", pools_list)
-    const l: Array<PriceModel> = []
-    pools_list.forEach(pool => {
-      poolContract = new ethers.Contract(pool.pool_id, IUniswapV3PoolABI, provider);
-      //console.log("current pool instance: ", pool)
-      //console.log("TOKEN0-: ", pool.token0.decimals, pool.token0)
-      //console.log("TOKEN1-: ",  pool.token1.decimals,  pool.token1)
-      
 
-      try {
-        const poolInstance = readPoolInstance(
-          pool
-        );
-        poolInstance.then((poolData) => {
-
-          ////console.log("***POOL***")
-          ////console.log("POOL ID: ", pool.pool_id)
-          //console.log(p)
-          ////console.log("->Pool Data")
-          //console.log("Uniswap Pools list: ", pools_list)
-          const token0Price = poolData.token0Price;
-          const token1Price = poolData.token1Price;
-          //console.log("Base Currency: ", token0Price)
-        
-          const sqrtx96 = poolData.sqrtRatioX96;
-          const priceToken0 = token0Price.toSignificant(6)
-          //console.log("Price of token0 wrt token1: ", priceToken0)
-
-          const priceToken1 = token1Price.toSignificant(6)
-          console.log(`Price of ${poolData.token1.symbol} wrt ${poolData.token0.symbol}: ${priceToken1}`)
-          
-          let model: PriceModel = {
-            token0: poolData.token1.symbol,
-            token1: poolData.token0.symbol,
-            price: priceToken1
-          } 
-
-          l.push(model)
-        })
-        .then((data) => console.log("CREATD LIST: ", l))
-      }
-      catch (e: any){
-        console.log(e)
-      }
-      
-    });
+    //Set public variable "prices_list"
+    fetchTokenPools(pools_list);
+    setTimeout(() => {
+      console.log("Set global price list: ", prices_list)
+    }, 4000);
+    
 
   }
 }
 
-//main()
+setTimeout(() => {
+  const test = main()
+  console.log("FINAL: ", test)
+}, 1000);
+
 
 chain
   .add(
     () => {
-      main()
+      //main()
     }
-    
+
   )
   .every(20000)
   .forever
