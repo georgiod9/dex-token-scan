@@ -42,7 +42,20 @@ app.get('/getSushiswapTokens', (req, res) => {
     sushiswapHandler.getSushiswapPriceModel();
 
   }, 4000);
- 
+
+})
+
+app.get('/getCommonPairs', (req, res) => {
+  getUniswapPriceList();
+  setTimeout(() => {
+    sushiswapHandler.getCommonPairs(poolHandler.prices_list)
+    setTimeout(() => {
+      //console.log("RETURNEWD: ", sushiswapHandler.common_uniswap_pairs)
+      res.json({
+        common_pairs: sushiswapHandler.common_uniswap_pairs
+      })
+    }, 3000);
+  }, 2000);
 })
 
 //getAllUniswapPools()
@@ -63,12 +76,12 @@ function getUniswapPriceList() {
     //Set public variable "prices_list"
     poolHandler.fetchTokenPools(poolHandler.pools_list);
     setTimeout(() => {
-      console.log("Set global price list: ", poolHandler.prices_list)
-      
+      ///console.log("Set global price list: ", poolHandler.prices_list)
+
       poolHandler.prices_list.forEach((element, index) => {
-        console.log(`Pool ${index} details: ${element.token0.symbol}/${element.token1.symbol} -> ${element.token1Price}`)
+        ////console.log(`Pool ${index} details: ${element.token0.symbol}/${element.token1.symbol} -> ${element.token1Price}`)
       })
-      
+
     }, 5000);
 
   }

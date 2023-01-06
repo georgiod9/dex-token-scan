@@ -106,7 +106,7 @@ export class PoolHandler {
                         });
                     }
 
-                    console.log("Pools List Initialized: ", this.pools_list)
+                    ////console.log("Pools List Initialized: ", this.pools_list)
                 });
         }
         catch (e: any) {
@@ -198,7 +198,7 @@ export class PoolHandler {
                 poolInstance.then((poolData) => {
                     
                     ////console.log("***POOL***")
-                    console.log("POOL ID: ", pool.pool_id)
+                    //console.log("POOL ID: ", pool.pool_id)
                     //console.log(p)
                     ////console.log("->Pool Data")
                     //console.log("Uniswap Pools list: ", pools_list)
