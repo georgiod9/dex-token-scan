@@ -11,7 +11,7 @@ import { abi as IUniswapV3PoolABI } from '@uniswap/v3-core/artifacts/contracts/i
 
 
 import { PoolHandler } from './PoolHandler';
-import { SushiswapHandler } from './SushiSwapHandler';
+import { SushiswapHandler } from './SushiswapHandler';
 import express from "express"
 
 
@@ -48,11 +48,13 @@ app.get('/getSushiswapTokens', (req, res) => {
 app.get('/getCommonPairs', (req, res) => {
   getUniswapPriceList();
   setTimeout(() => {
-    sushiswapHandler.getCommonPairs(poolHandler.prices_list)
+    const exPairs = sushiswapHandler.getCommonPairs(poolHandler.prices_list)
     setTimeout(() => {
+      console.log("#######EXCHANGE PAIRS###########")
+      console.log(exPairs)
       //console.log("RETURNEWD: ", sushiswapHandler.common_uniswap_pairs)
       res.json({
-        common_pairs: sushiswapHandler.common_uniswap_pairs
+        common_pairs: exPairs
       })
     }, 3000);
   }, 2000);

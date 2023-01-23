@@ -29,12 +29,28 @@ interface UniPriceModel {
     token1Price: string,
 }
 
+interface ExchangePrice {
+    name: string,
+    token0Price: string,
+    token1Price: string
+}
+
 interface SushiswapPairs {
     id: string,
     token0: SushiswapToken,
     token1: SushiswapToken,
     token0Price: string,
-    token1Price: string,
+    token1Price: string
+
+}
+
+interface ExchangePairs {
+    id: string,
+    token0: SushiswapToken,
+    token1: SushiswapToken,
+    exchange0: ExchangePrice,
+    exchange1: ExchangePrice,
+
 }
 
 const poolHandler = new PoolHandler();
@@ -43,6 +59,7 @@ export class SushiswapHandler {
     pairs: Array<PriceModel> = [];
     prices_list: Array<SushiswapPriceModel> = [];
     common_uniswap_pairs: Array<SushiswapPairs> = [];
+    mutual_exchange_pairs: Array<ExchangePairs> = [];
 
     setPairs = (list: Array<SushiswapPriceModel>) => {
         const model: PriceModel = {
@@ -79,49 +96,116 @@ export class SushiswapHandler {
         }`
 
 
-        try {
-            const res = await fetch('https://api.thegraph.com/subgraphs/name/sushiswap/exchange', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({
-                    query
-                })
-            })
-                .then((response) => response.json())
-                .then(data => {
-                    this.common_uniswap_pairs.push(data.data.pairs[0]);
-                    console.log(`----Matching #${index}----`)
-                    console.log(JSON.stringify(data.data.pairs[0]))
-                    
-                })
 
-        }
-        catch (e: any) {
-            console.log("//Caught error///", e)
-        }
+        const res = await fetch('https://api.thegraph.com/subgraphs/name/sushiswap/exchange', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                query
+            })
+        })
+        //.then((response) => response.json())
+        //.then(data => {
+
+        // model.id = data.data.pairs[0].id;
+        //model.token0 = data.data.pairs[0].token0;
+        //model.token1 = data.data.pairs[0].token1;
+
+
+        //this.common_uniswap_pairs.push(model);
+        //console.log(`----Matching #${index}----`)
+        //console.log(JSON.stringify(data.data.pairs[0]))
+
+
+
+        // })
+
+
+        return res;
     }
 
     getCommonPairs = (uniswapTokens: Array<UniPriceModel>) => {
         //console.log("Find Common with Uni: ", uniswapTokens)
         console.log("Finding common pairs between uniswap and sushiswap...")
+
         uniswapTokens.forEach((element, index) => {
             const matchPair = this.getSushiswapPair(index, element.token0.address.toString(), element.token1.address.toString())
+            matchPair.then((response) => response.json())
+                .then(data => {
+
+                    console.log("**********TESTING***********")
+                    //console.log(JSON.stringify(data.data.pairs[0]))
+
+                    const model: ExchangePairs = {
+                        id: data.data.pairs[0].id,
+                        token0: {
+                            id: data.data.pairs[0].token0.id,
+                            symbol: data.data.pairs[0].token0.symbol,
+                        },
+                        token1: {
+                            id: data.data.pairs[0].token1.id,
+                            symbol: data.data.pairs[0].token1.symbol,
+                        },
+                        exchange0: {
+                            name: 'susiswap',
+                            token0Price: data.data.pairs[0].token0Price,
+                            token1Price: data.data.pairs[0].token1Price,
+                        },
+                        exchange1: {
+                            name: "uniswap",
+                            token0Price: element.token0Price,
+                            token1Price: element.token1Price,
+                        },
+                    }
+
+                    console.log("-------> Created Model: ")
+                    console.log(model)
+                    this.mutual_exchange_pairs.push(model);
+
+                })
+
             /*
             setTimeout(() => {
                 console.log("LIST NOW: ", this.common_uniswap_pairs)
             },1000);
+
+
+            const model: SushiswapPairs = {
+                        id: data.data.pairs[0].id,
+                        token0: {
+                            id: data.data.pairs[0].token0.id,
+                            symbol: data.data.pairs[0].token0.symbol,
+                        },
+                        token1: {
+                            id: data.data.pairs[0].token1.id,
+                            symbol: data.data.pairs[0].token1.symbol,
+                        },
+                        exchange0: {
+                            name: 'susiswap',
+                            token0Price: data.data.pairs[0].token0Price,
+                            token1Price: data.data.pairs[0].token1Price,
+                        },
+                        exchange1: {
+                            name: "uniswap",
+                            token0Price: "",
+                            token1Price: "",
+                        },
+                    
+                    }
+
             */
         })
+        return this.mutual_exchange_pairs
     }
 
     getSushiswapPairs = async () => {
         //query sushiswap for tokens ordered by volumeUSD descending
         const query =
             `{
-                pairs(first: 10, orderBy: volumeUSD, orderDirection: desc) {
+                pairs(first: 20, orderBy: volumeUSD, orderDirection: desc) {
                     id
                     token0 {
                       id

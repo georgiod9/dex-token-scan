@@ -57,7 +57,7 @@ export class PoolHandler {
     async initialize() {
         const query = `
           {
-            pools(first: 10, orderBy: volumeUSD, orderDirection: desc) {
+            pools(first: 20, orderBy: volumeUSD, orderDirection: desc) {
               id
               token0{
                 id
